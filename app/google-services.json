@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "18429886336",
+    "project_id": "crptotide",
+    "storage_bucket": "crptotide.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:18429886336:android:d317ba2ca039c8e3bf0b65",
+        "android_client_info": {
+          "package_name": "com.example.cryptotide"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCBRbzgsLEVnZXs6C-j7IM1gztXng17XVw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

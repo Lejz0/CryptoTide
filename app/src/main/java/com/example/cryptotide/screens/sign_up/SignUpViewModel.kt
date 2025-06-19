@@ -32,11 +32,15 @@ class SignUpViewModel @Inject constructor(
     }
 
     fun onSignUpClick(onSuccessNavigation: () -> Unit) {
+        isLoading = true
         launchCatching {
             if (password != confirmPassword) {
+                isLoading = false
                 throw Exception("Passwords do not match")
             }
             accountService.signUp(email, password)
+            onSuccessNavigation()
+            isLoading = false
         }
     }
 }

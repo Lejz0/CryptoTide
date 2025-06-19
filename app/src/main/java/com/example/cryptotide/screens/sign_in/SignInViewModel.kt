@@ -26,9 +26,11 @@ class SignInViewModel @Inject constructor(
     }
 
     fun onSignInClick(onSuccessNavigation: () -> Unit) {
+        isLoading = true
         launchCatching {
             accountService.signIn(email, password)
             onSuccessNavigation()
+            isLoading = false
         }
     }
 }

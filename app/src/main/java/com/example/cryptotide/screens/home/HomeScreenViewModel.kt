@@ -11,8 +11,22 @@ import javax.inject.Inject
 
 @HiltViewModel
 class HomeScreenViewModel @Inject constructor() : CryptoTideAppViewModel() {
-    var coins by mutableStateOf<List<Cryptocurrency>>(emptyList())
+    var allCoins by mutableStateOf<List<Cryptocurrency>>(emptyList())
         private set
+
+    var searchQuery by mutableStateOf("")
+        private set
+
+    val coins: List<Cryptocurrency>
+        get() = if (searchQuery.isBlank()) allCoins
+        else allCoins.filter {
+                    it.name.contains(searchQuery, ignoreCase = true) ||
+                    it.symbol.contains(searchQuery, ignoreCase = true)
+        }
+
+    fun updateSearchQuery(query: String) {
+        searchQuery = query
+    }
 
     init {
         fetchCryptocurrencies()
@@ -21,7 +35,7 @@ class HomeScreenViewModel @Inject constructor() : CryptoTideAppViewModel() {
     private fun fetchCryptocurrencies() {
         launchCatching {
             val result = RetrofitInstance.api.getCryptocurrencies()
-            coins = result
+            allCoins = result
         }
     }
 }

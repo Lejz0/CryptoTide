@@ -18,7 +18,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -31,9 +38,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.example.cryptotide.model.Cryptocurrency
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(viewModel: HomeScreenViewModel = hiltViewModel()) {
-    LazyColumn(
+    Column(
         modifier = Modifier
             .fillMaxSize()
             .statusBarsPadding()
@@ -44,8 +52,32 @@ fun HomeScreen(viewModel: HomeScreenViewModel = hiltViewModel()) {
                     .asPaddingValues()
             )
     ) {
-        items(viewModel.coins) { coin ->
-            CryptocurrencyItem(coin = coin)
+        OutlinedTextField(
+            value = viewModel.searchQuery,
+            onValueChange = { viewModel.updateSearchQuery(it) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+            placeholder = { Text("Search cryptocurrencies...") },
+            leadingIcon = {
+                Icon(imageVector = Icons.Default.Search, contentDescription = null)
+            },
+            trailingIcon = {
+                if (viewModel.searchQuery.isNotBlank()) {
+                    IconButton(onClick = { viewModel.updateSearchQuery("") }) {
+                        Icon(imageVector = Icons.Default.Close, contentDescription = "Clear")
+                    }
+                }
+            },
+            singleLine = true
+        )
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+        ) {
+            items(viewModel.coins) { coin ->
+                CryptocurrencyItem(coin = coin)
+            }
         }
     }
 }
@@ -73,10 +105,12 @@ fun CryptocurrencyItem(coin: Cryptocurrency) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = coin.name,
+                Text(
+                    text = coin.name,
                     fontWeight = FontWeight.Bold
                 )
-                Text(text = coin.symbol.uppercase(),
+                Text(
+                    text = coin.symbol.uppercase(),
                     style = MaterialTheme.typography.bodySmall,
                     color = Color.Gray
                 )

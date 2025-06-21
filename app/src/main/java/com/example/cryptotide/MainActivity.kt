@@ -7,6 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.cryptotide.screens.coin_detail.CoinDetailScreen
 import com.example.cryptotide.screens.home.HomeScreen
 import com.example.cryptotide.screens.sign_in.SignInScreen
 import com.example.cryptotide.screens.sign_up.SignUpScreen
@@ -36,7 +37,12 @@ class MainActivity : ComponentActivity() {
                             SignInScreen(navController = navController)
                         }
                         composable("HOME_SCREEN") {
-                            HomeScreen()
+                            HomeScreen(navController = navController)
+                        }
+                        composable("COIN_DETAIL/{coinId}") {
+                            backStackEntry ->
+                            val coinId = backStackEntry.arguments?.getString("coinId") ?: ""
+                            CoinDetailScreen(coinId = coinId)
                         }
                     })
             }

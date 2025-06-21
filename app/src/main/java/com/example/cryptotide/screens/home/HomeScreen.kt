@@ -1,5 +1,6 @@
 package com.example.cryptotide.screens.home
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -35,12 +36,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.cryptotide.model.Cryptocurrency
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(viewModel: HomeScreenViewModel = hiltViewModel()) {
+fun HomeScreen(viewModel: HomeScreenViewModel = hiltViewModel(), navController: NavController) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -76,18 +78,21 @@ fun HomeScreen(viewModel: HomeScreenViewModel = hiltViewModel()) {
                 .fillMaxSize()
         ) {
             items(viewModel.coins) { coin ->
-                CryptocurrencyItem(coin = coin)
+                CryptocurrencyItem(coin = coin, onItemClick = {
+                    coin -> navController.navigate("COIN_DETAIL/${coin.id}")
+                })
             }
         }
     }
 }
 
 @Composable
-fun CryptocurrencyItem(coin: Cryptocurrency) {
+fun CryptocurrencyItem(coin: Cryptocurrency, onItemClick: (coin: Cryptocurrency) -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(8.dp),
+            .padding(8.dp)
+            .clickable{ onItemClick(coin) },
         verticalAlignment = Alignment.CenterVertically
     ) {
         AsyncImage(

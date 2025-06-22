@@ -1,10 +1,13 @@
 package com.example.cryptotide.model.service.impl
 
+import android.net.Uri
 import com.example.cryptotide.model.User
 import com.example.cryptotide.model.service.AccountService
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.auth
+import com.google.firebase.auth.userProfileChangeRequest
+import com.google.firebase.storage.storage
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -40,5 +43,19 @@ class AccountServiceImpl @Inject constructor() : AccountService {
 
     override suspend fun deleteAccount() {
         Firebase.auth.currentUser!!.delete().await()
+    }
+
+    override suspend fun uploadProfileImage(uri: Uri) {
+        val user = Firebase.auth.currentUser
+        val storageRef = Firebase.storage.reference.child("profile_images/${user?.uid}")
+        storageRef.putFile(uri).await()
+
+        val downloadUrl = storageRef.downloadUrl.await()
+
+        val profileUpdates = userProfileChangeRequest {
+            photoUri = downloadUrl
+        }
+
+        user?.updateProfile(profileUpdates)?.await()
     }
 }

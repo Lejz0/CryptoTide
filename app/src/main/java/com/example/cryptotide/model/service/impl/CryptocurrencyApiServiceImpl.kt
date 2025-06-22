@@ -1,5 +1,6 @@
 package com.example.cryptotide.model.service.impl
 
+import com.example.cryptotide.model.service.ChainBaseWalletApiService
 import com.example.cryptotide.model.service.CryptocurrencyApiService
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import kotlinx.serialization.json.Json
@@ -17,5 +18,13 @@ object RetrofitInstance {
             .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
             .build()
             .create(CryptocurrencyApiService::class.java)
+    }
+
+    val wallet_api: ChainBaseWalletApiService by lazy {
+        Retrofit.Builder()
+            .baseUrl("https://api.chainbase.online/v1/")
+            .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
+            .build()
+            .create(ChainBaseWalletApiService::class.java)
     }
 }

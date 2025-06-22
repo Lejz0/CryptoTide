@@ -12,6 +12,7 @@ interface CryptocurrencyApiService {
 
     @GET("coins/{id}")
     suspend fun getCoinDetails(
-        @Path("id") coinId: String
+        @Path("id") coinId: String,
+        @Query("sparkline") sparkline: Boolean = true
     ): CryptoDetailed
 }

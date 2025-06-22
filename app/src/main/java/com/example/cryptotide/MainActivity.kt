@@ -4,14 +4,17 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.cryptotide.screens.coin_detail.CoinDetailScreen
 import com.example.cryptotide.screens.home.HomeScreen
 import com.example.cryptotide.screens.sign_in.SignInScreen
 import com.example.cryptotide.screens.sign_up.SignUpScreen
 import com.example.cryptotide.screens.splash.SplashScreen
+import com.example.cryptotide.screens.wallet.WalletsScreen
 import com.example.cryptotide.ui.theme.CryptoTideTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -42,7 +45,15 @@ class MainActivity : ComponentActivity() {
                         composable("COIN_DETAIL/{coinId}") {
                             backStackEntry ->
                             val coinId = backStackEntry.arguments?.getString("coinId") ?: ""
-                            CoinDetailScreen(coinId = coinId)
+                            CoinDetailScreen(navController = navController, coinId = coinId)
+                        }
+
+                        composable(
+                            route = "wallet_screen/{coinId}",
+                            arguments = listOf(navArgument("coinId") { type = NavType.StringType })
+                        ) { backStackEntry ->
+                            val coinId = backStackEntry.arguments?.getString("coinId") ?: ""
+                            WalletsScreen(coinId = coinId, navController = navController)
                         }
                     })
             }

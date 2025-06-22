@@ -1,5 +1,6 @@
 package com.example.cryptotide.screens.home
 
+import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -35,6 +36,7 @@ class HomeScreenViewModel @Inject constructor() : CryptoTideAppViewModel() {
     private fun fetchCryptocurrencies() {
         launchCatching {
             val result = RetrofitInstance.api.getCryptocurrencies()
+            Log.d("all coins", result.toString())
             allCoins = result
         }
     }

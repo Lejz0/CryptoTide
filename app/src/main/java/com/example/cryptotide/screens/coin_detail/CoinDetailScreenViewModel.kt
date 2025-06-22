@@ -1,5 +1,6 @@
 package com.example.cryptotide.screens.coin_detail
 
+import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -46,6 +47,7 @@ class CoinDetailScreenViewModel @Inject constructor() : CryptoTideAppViewModel()
 
             try {
                 val platformContract = findSupportedPlatform(coin)
+                Log.d("supportedPlatform", platformContract.toString())
                 if (platformContract != null) {
                     val response = RetrofitInstance.wallet_api.getTopHolders(
                         chainId = platformContract.second,
@@ -55,6 +57,7 @@ class CoinDetailScreenViewModel @Inject constructor() : CryptoTideAppViewModel()
 
                     if (response.code == 0) {
                         topHolders = response.data
+                        Log.d("topHolders", response.data.toString())
                     } else {
                         topHoldersError = response.message
                     }

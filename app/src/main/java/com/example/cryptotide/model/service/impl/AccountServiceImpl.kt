@@ -37,4 +37,8 @@ class AccountServiceImpl @Inject constructor() : AccountService {
     override suspend fun signOut() {
         Firebase.auth.signOut()
     }
+
+    override suspend fun deleteAccount() {
+        Firebase.auth.currentUser!!.delete().await()
+    }
 }

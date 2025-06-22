@@ -101,7 +101,7 @@ class MainActivity : ComponentActivity() {
                                 HomeScreen(navController = navController)
                             }
                             composable("FAVORITES") {
-                                FavoritesScreen()
+                                FavoritesScreen(navController = navController)
                             }
                             composable("PROFILE") {
                                 ProfileScreen(navController = navController)

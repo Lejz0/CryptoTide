@@ -1,43 +1,78 @@
 package com.example.cryptotide.screens.coin_detail
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.OpenInNew
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
+import androidx.compose.material.icons.filled.TrendingDown
+import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Divider
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconToggleButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.cryptotide.model.CryptoDetailed
-import androidx.compose.foundation.Canvas
-import androidx.compose.material.icons.filled.AccountBalance
-import androidx.compose.material.icons.filled.AttachMoney
-import androidx.compose.material.icons.filled.TrendingDown
-import androidx.compose.material.icons.filled.TrendingUp
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.nativeCanvas
+import com.example.cryptotide.screens.home.HomeScreenViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -105,9 +140,11 @@ fun CoinDetailScreen(
                     isLoading -> {
                         LoadingView()
                     }
+
                     error != null -> {
                         ErrorView(error!!)
                     }
+
                     viewModel.coin != null -> {
                         CoinDetailContent(
                             coin = viewModel.coin!!,
@@ -217,6 +254,10 @@ fun CoinDetailContent(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            FavoriteButton(coin = coin)
         }
 
         Divider()
@@ -337,7 +378,10 @@ fun CoinDetailContent(
 
                             MarketStatItem(
                                 label = "24h High",
-                                value = "$${coin.marketData.high24h?.get("usd")?.let { "%.2f".format(it) } ?: "N/A"}"
+                                value = "$${
+                                    coin.marketData.high24h?.get("usd")
+                                        ?.let { "%.2f".format(it) } ?: "N/A"
+                                }"
                             )
                         }
 
@@ -352,7 +396,10 @@ fun CoinDetailContent(
 
                             MarketStatItem(
                                 label = "24h Low",
-                                value = "$${coin.marketData.low24h?.get("usd")?.let { "%.2f".format(it) } ?: "N/A"}"
+                                value = "$${
+                                    coin.marketData.low24h?.get("usd")
+                                        ?.let { "%.2f".format(it) } ?: "N/A"
+                                }"
                             )
                         }
                     }
@@ -437,7 +484,8 @@ fun CoinDetailContent(
                 // If no links are available
                 if ((coin.links.homePage.isNullOrEmpty() || coin.links.homePage[0].isEmpty()) &&
                     (coin.links.reposUrl.github.isNullOrEmpty() || coin.links.reposUrl.github[0].isEmpty()) &&
-                    coin.links.whitepaper.isNullOrEmpty()) {
+                    coin.links.whitepaper.isNullOrEmpty()
+                ) {
                     Text(
                         text = "No resource links available",
                         style = MaterialTheme.typography.bodyMedium,
@@ -488,7 +536,12 @@ fun PriceChart(
     Column(modifier = modifier) {
 
         Text(
-            text = "First: $${String.format("%.2f", firstValue)} → Last: $${String.format("%.2f", lastValue)} (${if(isPositiveTrend) "UP" else "DOWN"})",
+            text = "First: $${String.format("%.2f", firstValue)} → Last: $${
+                String.format(
+                    "%.2f",
+                    lastValue
+                )
+            } (${if (isPositiveTrend) "UP" else "DOWN"})",
             style = MaterialTheme.typography.bodySmall,
             color = lineColor,
             modifier = Modifier.padding(bottom = 4.dp)
@@ -512,7 +565,12 @@ fun PriceChart(
             val changePercent = if (firstValue != 0.0) (changeAmount / firstValue) * 100 else 0.0
 
             Text(
-                text = "${if (changeAmount >= 0) "+" else ""}${String.format("%.2f", changeAmount)} (${String.format("%.2f", changePercent)}%)",
+                text = "${if (changeAmount >= 0) "+" else ""}${
+                    String.format(
+                        "%.2f",
+                        changeAmount
+                    )
+                } (${String.format("%.2f", changePercent)}%)",
                 style = MaterialTheme.typography.bodySmall,
                 fontWeight = FontWeight.Medium,
                 color = if (changeAmount >= 0) positiveColor else negativeColor
@@ -527,11 +585,12 @@ fun PriceChart(
         }
 
 
-        Canvas(modifier = Modifier
-            .fillMaxWidth()
-            .height(200.dp)
-            .background(Color(0xFFF5F9FF))
-            .clip(RoundedCornerShape(8.dp))
+        Canvas(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(200.dp)
+                .background(Color(0xFFF5F9FF))
+                .clip(RoundedCornerShape(8.dp))
         ) {
             val width = size.width
             val height = size.height
@@ -589,7 +648,7 @@ fun PriceChart(
                     strokeWidth = 0.5f
                 )
 
-                val dayLabel = when(i) {
+                val dayLabel = when (i) {
                     0 -> "7d ago"
                     timeIndicators - 1 -> "Today"
                     else -> ""
@@ -780,6 +839,47 @@ fun LinkButton(
         Icon(
             imageVector = Icons.Default.OpenInNew,
             contentDescription = "Open Link"
+        )
+    }
+}
+
+@Composable
+fun FavoriteButton(
+    modifier: Modifier = Modifier,
+    color: Color = Color(0xffffa500),
+    coin: CryptoDetailed,
+    homeScreenViewModel: HomeScreenViewModel = hiltViewModel()
+) {
+
+    val allFavorites by remember { homeScreenViewModel::allFavoriteCoinIds }
+
+    val isFavorite by remember(allFavorites) {
+        derivedStateOf { allFavorites.contains(coin.id) }
+    }
+
+    IconToggleButton(
+        checked = isFavorite,
+        onCheckedChange = { checked ->
+            if (checked) {
+                homeScreenViewModel.addFavoriteCoin(coin.id)
+            } else {
+                homeScreenViewModel.removeFavoriteCoin(coin.id)
+
+            }
+        }
+    ) {
+        Icon(
+            tint = color,
+            modifier = modifier.graphicsLayer {
+                scaleX = 1.3f
+                scaleY = 1.3f
+            },
+            imageVector = if (isFavorite) {
+                Icons.Filled.Star
+            } else {
+                Icons.Default.StarBorder
+            },
+            contentDescription = null
         )
     }
 }

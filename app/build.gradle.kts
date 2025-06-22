@@ -92,4 +92,7 @@ dependencies {
     implementation("androidx.compose.material:material:1.8.3")
 
     implementation("com.google.firebase:firebase-storage")
+
+    implementation("com.google.firebase:firebase-firestore")
+
 }

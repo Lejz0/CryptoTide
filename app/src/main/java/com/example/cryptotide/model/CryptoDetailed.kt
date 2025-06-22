@@ -6,6 +6,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class CryptoDetailed(
+    val id: String,
     val symbol: String,
     val name: String,
     val image: Image,

@@ -95,4 +95,7 @@ dependencies {
 
     implementation("com.google.firebase:firebase-firestore")
 
+    // MediaPipe GenAI
+    implementation ("com.google.mediapipe:tasks-genai:0.10.24")
+
 }

@@ -1,5 +1,8 @@
 package com.example.cryptotide.screens.coin_detail
 
+import android.content.Context
+import android.content.Intent
+import android.os.Build
 import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -12,6 +15,8 @@ import com.example.cryptotide.model.service.impl.RetrofitInstance
 import dagger.hilt.android.lifecycle.HiltViewModel
 import jakarta.inject.Inject
 import com.example.cryptotide.BuildConfig
+import com.example.cryptotide.ai.AiAnalysisCache
+import com.example.cryptotide.ai.GemmaAnalysisService
 
 @HiltViewModel
 class CoinDetailScreenViewModel @Inject constructor() : CryptoTideAppViewModel() {
@@ -30,18 +35,26 @@ class CoinDetailScreenViewModel @Inject constructor() : CryptoTideAppViewModel()
     var selectedWalletAddress by mutableStateOf<String?>(null)
         private set
 
-    internal fun getCoinDetails(coinId: String) {
+    internal fun getCoinDetails(coinId: String, context: Context, createAnalysisCheck: Boolean= false, getTopHoldersCheck: Boolean = false) {
         launchCatching {
             val result = RetrofitInstance.api.getCoinDetails(coinId)
             coin = result
 
-            fetchTopHolders(coinId)
+            val cachedAnalysis = AiAnalysisCache.getAnalysis(coinId)
+            if (cachedAnalysis != null) {
+                aiResult = cachedAnalysis
+            } else if (createAnalysisCheck) {
+                generateAiPrompt(context, result, coinId)
+            }
+
+            if (getTopHoldersCheck) {
+                fetchTopHolders(coinId)
+            }
         }
     }
 
     private fun fetchTopHolders(coinId: String) {
         launchCatching {
-            // Reset previous data
             topHolders = null
             topHoldersError = null
 
@@ -52,7 +65,7 @@ class CoinDetailScreenViewModel @Inject constructor() : CryptoTideAppViewModel()
                     val response = RetrofitInstance.wallet_api.getTopHolders(
                         chainId = platformContract.second,
                         contractAddress = platformContract.first,
-                        apiKey = BuildConfig.WALLET_API_KEY // Consider moving to secure storage
+                        apiKey = BuildConfig.WALLET_API_KEY
                     )
 
                     if (response.code == 0) {
@@ -119,5 +132,57 @@ class CoinDetailScreenViewModel @Inject constructor() : CryptoTideAppViewModel()
         }
 
         return null
+    }
+
+    var aiResult by mutableStateOf<String?>(null)
+        private set
+
+    var isAnalyzing by mutableStateOf(false)
+        private set
+
+    fun resetAiState() {
+        aiResult = null
+        isAnalyzing = false
+    }
+
+    fun startAiAnalysis(context: Context, prompt: String, coinId: String) {
+        isAnalyzing = true
+        aiResult = null
+
+        val intent = Intent(context, GemmaAnalysisService::class.java).apply {
+            putExtra("prompt", prompt)
+            putExtra("coinId", coinId)
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            context.startForegroundService(intent)
+        } else {
+            context.startService(intent)
+        }
+    }
+
+    fun onAiResultReceived(result: String) {
+        aiResult = result
+        isAnalyzing = false
+
+        coin?.id?.let { coinId ->
+            AiAnalysisCache.saveAnalysis(coinId, result)
+        }
+    }
+
+    private fun generateAiPrompt(context: Context, coin: CryptoDetailed, coinId: String) {
+        val symbol = coin.symbol.uppercase()
+        val name = coin.name
+        val desc = coin.description.en.take(300)
+        val marketCap = coin.marketData?.marketCap?.get("usd") ?: "unknown"
+
+        val prompt = buildString {
+            append("Give a concise yet insightful analysis of the cryptocurrency $name ($symbol).\n")
+            append("Market cap in USD: $marketCap\n")
+            append("Short description: $desc\n")
+            append("Your analysis should include its use case, potential growth, and overall impression.\n")
+        }
+
+        startAiAnalysis(context, prompt, coinId)
     }
 }

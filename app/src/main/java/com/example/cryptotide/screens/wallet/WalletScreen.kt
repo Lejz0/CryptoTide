@@ -1,5 +1,6 @@
 package com.example.cryptotide.screens.wallet
 
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -13,6 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -31,7 +33,8 @@ import androidx.compose.ui.text.style.TextOverflow
 fun WalletsScreen(
     coinId: String,
     navController: NavController,
-    viewModel: CoinDetailScreenViewModel = hiltViewModel()
+    viewModel: CoinDetailScreenViewModel = hiltViewModel(),
+    context: Context = LocalContext.current
 ) {
     val coin by remember { derivedStateOf { viewModel.coin } }
     val topHolders = viewModel.topHolders
@@ -40,7 +43,7 @@ fun WalletsScreen(
 
     LaunchedEffect(coinId) {
         if (viewModel.coin == null) {
-            viewModel.getCoinDetails(coinId)
+            viewModel.getCoinDetails(coinId, context, getTopHoldersCheck = true)
         }
     }
 
@@ -89,11 +92,9 @@ fun WalletsScreen(
                 }
 
                 else -> {
-                    // Create a flat list of items combining wallets and their transactions
                     val items = buildList {
                         add(HeaderItem("Showing top ${topHolders.size} wallets by balance"))
 
-                        // Add wallet items and their transactions if selected
                         topHolders.forEach { holder ->
                             add(WalletItem(holder))
                             if (holder.walletAddress == selectedWalletAddress) {
@@ -142,7 +143,6 @@ fun WalletsScreen(
     }
 }
 
-// Define sealed class for list items
 private sealed class ListItem
 private class HeaderItem(val text: String) : ListItem()
 private class WalletItem(val holder: TopHolder) : ListItem()
@@ -281,11 +281,10 @@ private fun TransactionsList(transactions: List<TopTransaction>?) {
                 }
 
                 else -> {
-                    // Use LazyColumn for better performance with transactions
                     LazyColumn(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .heightIn(max = 350.dp) // Set a max height but allow full display
+                            .heightIn(max = 350.dp)
                     ) {
                         items(transactions.take(5)) { tx ->
                             TransactionItem(tx)
@@ -311,14 +310,12 @@ private fun TransactionItem(transaction: TopTransaction) {
                 .weight(1f)
                 .padding(vertical = 4.dp)
         ) {
-            // Format and show timestamp
             val timestamp = transaction.blockTimestamp.split("T")[0]
             Text(
                 text = "Date: $timestamp",
                 style = MaterialTheme.typography.bodySmall
             )
 
-            // Show transaction hash (shortened)
             val shortHash = transaction.transactionHash.take(8) + "..." +
                     transaction.transactionHash.takeLast(8)
             Text(
@@ -328,7 +325,6 @@ private fun TransactionItem(transaction: TopTransaction) {
                 overflow = TextOverflow.Ellipsis
             )
 
-            // Show from/to addresses (shortened)
             val shortFrom = transaction.fromAddress.take(6) + "..." +
                     transaction.fromAddress.takeLast(6)
             val shortTo = transaction.toAddress.take(6) + "..." +
@@ -348,7 +344,6 @@ private fun TransactionItem(transaction: TopTransaction) {
                 overflow = TextOverflow.Ellipsis
             )
 
-            // Format and show value
             val valueInEth = (transaction.value.toBigDecimalOrNull() ?: BigDecimal.ZERO)
                 .divide(BigDecimal("1000000000000000000"), 6, RoundingMode.HALF_UP)
                 .toPlainString()
@@ -362,7 +357,6 @@ private fun TransactionItem(transaction: TopTransaction) {
     }
 }
 
-// Helper functions
 private fun shortenAddress(address: String): String {
     return if (address.length > 10) {
         "${address.take(6)}...${address.takeLast(4)}"

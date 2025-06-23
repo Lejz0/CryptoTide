@@ -1,5 +1,14 @@
 package com.example.cryptotide.screens.coin_detail
 
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.content.pm.PackageManager
+import android.os.Build
+import android.util.Log
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -29,6 +38,7 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material.icons.filled.TrendingDown
 import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -47,6 +57,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -63,33 +74,61 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import com.example.cryptotide.ai.AiAnalysisCache
 import com.example.cryptotide.model.CryptoDetailed
 import com.example.cryptotide.screens.home.HomeScreenViewModel
+import kotlin.text.compareTo
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CoinDetailScreen(
     coinId: String,
     navController: NavController,
-    viewModel: CoinDetailScreenViewModel = hiltViewModel()
+    viewModel: CoinDetailScreenViewModel = hiltViewModel(),
+    context: Context = LocalContext.current
 ) {
     val uriHandler = LocalUriHandler.current
     var isLoading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
 
+    var showPermissionDialog by remember { mutableStateOf(false) }
+    val hasNotificationPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        ContextCompat.checkSelfPermission(
+            context,
+            android.Manifest.permission.POST_NOTIFICATIONS
+        ) == PackageManager.PERMISSION_GRANTED
+    } else {
+        true
+    }
+
+    LaunchedEffect(Unit) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !hasNotificationPermission) {
+            showPermissionDialog = true
+        }
+    }
+
+    if (showPermissionDialog) {
+        RequestNotificationPermissionDialog { granted ->
+            showPermissionDialog = false
+        }
+    }
+
+
     LaunchedEffect(coinId) {
         isLoading = true
         error = null
         try {
-            viewModel.getCoinDetails(coinId)
+            viewModel.getCoinDetails(coinId, context, createAnalysisCheck = true)
         } catch (e: Exception) {
             error = "Failed to load coin data: ${e.message}"
         } finally {
@@ -97,7 +136,6 @@ fun CoinDetailScreen(
         }
     }
 
-    // Force light theme for this screen regardless of system settings
     MaterialTheme(
         colorScheme = MaterialTheme.colorScheme.copy(
             background = Color.White,
@@ -133,7 +171,7 @@ fun CoinDetailScreen(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.White)  // Explicit white background
+                    .background(Color.White)
                     .padding(paddingValues)
             ) {
                 when {
@@ -149,10 +187,10 @@ fun CoinDetailScreen(
                         CoinDetailContent(
                             coin = viewModel.coin!!,
                             onLinkClick = { link -> uriHandler.openUri(link) },
-                            // Add navigation to wallet screen
                             onViewWalletsClick = {
                                 navController.navigate("wallet_screen/${coinId}")
-                            }
+                            },
+                            viewModel = viewModel
                         )
                     }
                 }
@@ -209,7 +247,8 @@ fun ErrorView(error: String) {
 fun CoinDetailContent(
     coin: CryptoDetailed,
     onViewWalletsClick: () -> Unit = {},
-    onLinkClick: (String) -> Unit
+    onLinkClick: (String) -> Unit,
+    viewModel: CoinDetailScreenViewModel
 ) {
     var expandedDescription by remember { mutableStateOf(false) }
     val currentPrice = coin.marketData?.currentPrice?.get("usd")
@@ -222,7 +261,6 @@ fun CoinDetailContent(
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Coin header with image and symbol
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -262,13 +300,13 @@ fun CoinDetailContent(
 
         Divider()
 
-        // Price information section
+        AiAnalysisSection(coinId = coin.id,viewModel = viewModel)
+
         InfoCard(
             title = "Market Data",
             icon = Icons.Default.AttachMoney
         ) {
             Column {
-                // Current Price
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
@@ -287,7 +325,6 @@ fun CoinDetailContent(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // 24h Price Change
                 if (coin.marketData?.priceChangePercentage24h != null) {
                     val change24h = coin.marketData.priceChangePercentage24h
                     val isPositive = change24h >= 0
@@ -363,8 +400,6 @@ fun CoinDetailContent(
 
                 if (coin.marketData != null) {
                     Spacer(modifier = Modifier.height(8.dp))
-
-                    // Additional market stats in 2 columns
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
@@ -407,7 +442,6 @@ fun CoinDetailContent(
             }
         }
 
-        // Genesis Date section
         InfoCard(
             title = "Genesis Date",
             icon = Icons.Default.CalendarMonth
@@ -419,7 +453,6 @@ fun CoinDetailContent(
             )
         }
 
-        // Description section
         InfoCard(
             title = "About",
             icon = Icons.Default.Description
@@ -451,37 +484,29 @@ fun CoinDetailContent(
             }
         }
 
-        // Links section
         InfoCard(
             title = "Resources",
             icon = Icons.Default.Link
         ) {
             Column {
-                // Website
                 if (!coin.links.homePage.isNullOrEmpty() && coin.links.homePage[0].isNotEmpty()) {
                     LinkButton(
                         text = "Official Website",
                         onClick = { onLinkClick(coin.links.homePage[0]) }
                     )
                 }
-
-                // GitHub
                 if (!coin.links.reposUrl.github.isNullOrEmpty() && coin.links.reposUrl.github[0].isNotEmpty()) {
                     LinkButton(
                         text = "GitHub Repository",
                         onClick = { onLinkClick(coin.links.reposUrl.github[0]) }
                     )
                 }
-
-                // Whitepaper
                 if (!coin.links.whitepaper.isNullOrEmpty()) {
                     LinkButton(
                         text = "Whitepaper",
                         onClick = { onLinkClick(coin.links.whitepaper) }
                     )
                 }
-
-                // If no links are available
                 if ((coin.links.homePage.isNullOrEmpty() || coin.links.homePage[0].isEmpty()) &&
                     (coin.links.reposUrl.github.isNullOrEmpty() || coin.links.reposUrl.github[0].isEmpty()) &&
                     coin.links.whitepaper.isNullOrEmpty()
@@ -495,10 +520,7 @@ fun CoinDetailContent(
             }
         }
         if (coin.platforms?.isNotEmpty() == true) {
-            // Add some spacing
             Spacer(modifier = Modifier.height(8.dp))
-
-            // Wallet holders button card
             InfoCard(
                 title = "Token Holders",
                 icon = Icons.Default.AccountBalance
@@ -524,13 +546,11 @@ fun PriceChart(
     val range = maxValue - minValue
     val lastValue = sparklineData.lastOrNull() ?: 0.0
     val firstValue = sparklineData.firstOrNull() ?: 0.0
-    val isPositiveTrend = lastValue > firstValue  // Changed to strictly greater than
+    val isPositiveTrend = lastValue > firstValue
 
-    // Define colors explicitly
     val positiveColor = Color(0xFF4CAF50)  // Green
     val negativeColor = Color(0xFFF44336)  // Red
 
-    // Correctly assign color based on trend
     val lineColor = if (isPositiveTrend) positiveColor else negativeColor
 
     Column(modifier = modifier) {
@@ -599,7 +619,6 @@ fun PriceChart(
             val chartWidth = width - (paddingHorizontal * 2)
             val chartHeight = height - (paddingVertical * 2)
 
-
             val gridLineCount = 3
             val gridLineStep = chartHeight / (gridLineCount - 1)
 
@@ -629,7 +648,7 @@ fun PriceChart(
                     }
                     drawText(
                         "$$formattedPrice",
-                        paddingHorizontal - 6.dp.toPx(),  // Increased offset
+                        paddingHorizontal - 6.dp.toPx(),
                         paddingVertical + i * gridLineStep + 4.dp.toPx(),
                         textPaint
                     )
@@ -687,15 +706,11 @@ fun PriceChart(
                         path.lineTo(x, y)
                     }
                 }
-
-                // Draw line with correct color
                 drawPath(
                     path = path,
                     color = lineColor,
                     style = Stroke(width = 2.dp.toPx())
                 )
-
-                // Fill area below line
                 val fillPath = Path()
                 fillPath.addPath(path)
                 fillPath.lineTo(width - paddingHorizontal, height - paddingVertical)
@@ -713,8 +728,6 @@ fun PriceChart(
                         endY = height - paddingVertical
                     )
                 )
-
-                // Draw data points
                 val pointCount = minOf(7, sparklineData.size)
                 val pointStep = if (sparklineData.size > pointCount)
                     sparklineData.size / pointCount else 1
@@ -883,6 +896,144 @@ fun FavoriteButton(
         )
     }
 }
+
+@Composable
+fun AiAnalysisSection(
+    coinId: String,
+    viewModel: CoinDetailScreenViewModel
+) {
+    val context = LocalContext.current
+    val isAnalyzing by viewModel::isAnalyzing
+    val aiResult by viewModel::aiResult
+
+    DisposableEffect(Unit) {
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(ctx: Context?, intent: Intent?) {
+                if (intent?.action == "com.example.AI_RESULT") {
+                    val result = intent.getStringExtra("ai_result")
+                    val receivedCoinId = intent.getStringExtra("coinId")
+
+                    Log.d("AIReceiver", "Broadcast received with result: ${result?.take(50)}...")
+
+                    if (result != null) {
+                        if (receivedCoinId != null) {
+                            AiAnalysisCache.saveAnalysis(receivedCoinId, result)
+                        }
+
+                        if (receivedCoinId == null || receivedCoinId == coinId) {
+                            viewModel.onAiResultReceived(result)
+                        }
+                    }
+                }
+            }
+        }
+
+        val filter = IntentFilter("com.example.AI_RESULT")
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            context.registerReceiver(receiver, filter, Context.RECEIVER_EXPORTED)
+        } else {
+            context.registerReceiver(receiver, filter)
+        }
+
+        onDispose {
+            try {
+                context.unregisterReceiver(receiver)
+            } catch (e: IllegalArgumentException) {
+                Log.e("AIReceiver", "Error unregistering receiver", e)
+            }
+        }
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer
+        )
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(bottom = 8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Description,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                Text(
+                    text = "AI Analysis",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            if (isAnalyzing) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(vertical = 16.dp)
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier
+                            .size(24.dp)
+                            .padding(end = 8.dp),
+                        strokeWidth = 2.dp
+                    )
+                    Text("Analyzing with AI...")
+                }
+            } else if (aiResult != null) {
+                Text(
+                    text = aiResult!!,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            } else {
+                Text(
+                    text = "AI analysis will start automatically",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun RequestNotificationPermissionDialog(
+    onPermissionResult: (Boolean) -> Unit
+) {
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+        onResult = onPermissionResult
+    )
+
+    AlertDialog(
+        onDismissRequest = { onPermissionResult(false) },
+        title = { Text("Enable Notifications") },
+        text = {
+            Text("This app needs notification permission to alert you when AI analysis is complete.")
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    permissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                }
+            ) {
+                Text("Enable")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = { onPermissionResult(false) }) {
+                Text("Not Now")
+            }
+        }
+    )
+}
+
 
 
 

@@ -171,18 +171,42 @@ class CoinDetailScreenViewModel @Inject constructor() : CryptoTideAppViewModel()
     }
 
     private fun generateAiPrompt(context: Context, coin: CryptoDetailed, coinId: String) {
-        val symbol = coin.symbol.uppercase()
-        val name = coin.name
-        val desc = coin.description.en.take(300)
-        val marketCap = coin.marketData?.marketCap?.get("usd") ?: "unknown"
+        launchCatching {
+            val symbol = coin.symbol.uppercase()
+            val name = coin.name
+            val desc = coin.description.en.take(300)
+            val marketCap = coin.marketData?.marketCap?.get("usd") ?: "unknown"
 
-        val prompt = buildString {
-            append("Give a concise yet insightful analysis of the cryptocurrency $name ($symbol).\n")
-            append("Market cap in USD: $marketCap\n")
-            append("Short description: $desc\n")
-            append("Your analysis should include its use case, potential growth, and overall impression.\n")
+            val articles = try {
+                RetrofitInstance.news_api.getNews(
+                    query = "$name cryptocurrency news",
+                ).articles.take(3)
+            } catch (e: Exception) {
+                Log.e("NewsFetch", "Error fetching news: ${e.message}")
+                emptyList()
+            }
+
+            val prompt = buildString {
+                append("Analyse the cryptocurrency $name ($symbol).\n")
+                append("Market cap in USD: $marketCap\n")
+                append("Short description: $desc\n")
+
+                if (articles.isNotEmpty()) {
+                    append("Recent news highlights:\n")
+                    articles.forEachIndexed { index, article ->
+                        append("${index + 1}. ${article.title}\n")
+                        article.description?.let {
+                            append("   Summary: $it\n")
+                        }
+                    }
+                }
+
+                append("Your analysis should strongly include the news highlights.\n")
+            }
+
+            Log.d("AiPrompt", "Generated prompt: $prompt")
+
+            startAiAnalysis(context, prompt, coinId)
         }
-
-        startAiAnalysis(context, prompt, coinId)
     }
 }

@@ -2,6 +2,7 @@ package com.example.cryptotide.model.service.impl
 
 import com.example.cryptotide.model.service.ChainBaseWalletApiService
 import com.example.cryptotide.model.service.CryptocurrencyApiService
+import com.example.cryptotide.model.service.NewsApiService
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
@@ -26,5 +27,13 @@ object RetrofitInstance {
             .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
             .build()
             .create(ChainBaseWalletApiService::class.java)
+    }
+
+    val news_api: NewsApiService by lazy {
+        Retrofit.Builder()
+            .baseUrl("https://newsapi.org/v2/")
+            .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
+            .build()
+            .create(NewsApiService::class.java)
     }
 }
